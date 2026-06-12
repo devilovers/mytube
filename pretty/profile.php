@@ -26,19 +26,40 @@ $user_result = mysqli_stmt_get_result($stmt);
 
 $user = mysqli_fetch_assoc($user_result);
 
-$stmt = mysqli_prepare(
-    $heart,
-    "SELECT *
-     FROM sparkles
-     WHERE babe_id = ?
-     ORDER BY created_at DESC"
-);
+$search = '';
+if (isset($_GET['search'])) {
+    $search = trim($_GET['search']);
+}
 
-mysqli_stmt_bind_param(
-    $stmt,
-    "i",
-    $user_id
-);
+if ($search !== '') {
+    $search_param = "%" . $search . "%";
+    $stmt = mysqli_prepare(
+        $heart,
+        "SELECT *
+         FROM sparkles
+         WHERE babe_id = ? AND judul LIKE ?
+         ORDER BY created_at DESC"
+    );
+    mysqli_stmt_bind_param(
+        $stmt,
+        "is",
+        $user_id,
+        $search_param
+    );
+} else {
+    $stmt = mysqli_prepare(
+        $heart,
+        "SELECT *
+         FROM sparkles
+         WHERE babe_id = ?
+         ORDER BY created_at DESC"
+    );
+    mysqli_stmt_bind_param(
+        $stmt,
+        "i",
+        $user_id
+    );
+}
 
 mysqli_stmt_execute($stmt);
 
@@ -87,9 +108,27 @@ $total_video = mysqli_num_rows($videos);
             </div>
         </div>
 
+        <section class="max-w-xl mr-auto mt-10">
+            <form method="GET" action="" class="relative flex items-center bg-white/80 dark:bg-zinc-800/80 p-2 rounded-2xl shadow-md border border-zinc-100 dark:border-zinc-700/30 backdrop-blur-md">
+                <input 
+                    type="text" 
+                    name="search" 
+                    value="<?= htmlspecialchars($search) ?>" 
+                    placeholder="Search my videos..." 
+                    class="w-full pl-4 pr-12 py-2.5 rounded-xl bg-transparent focus:outline-none text-sm font-medium">
+                <button 
+                    type="submit" 
+                    class="absolute right-3 p-2 rounded-xl bg-pink-500 text-white hover:bg-pink-600 active:scale-95 transition duration-200">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </button>
+            </form>
+        </section>
+
         <div class="mt-14 mb-8 flex items-center justify-between border-b border-zinc-200/60 dark:border-zinc-800 pb-4">
             <h2 class="text-2xl font-black tracking-tight text-pink-500 drop-shadow-sm flex items-center gap-2">
-                My Videos <span class="text-zinc-400 dark:text-zinc-600 text-lg font-normal">(<?= $total_video ?>)</span> ✨
+                <?= $search !== '' ? 'Search Results' : 'My Videos' ?> <span class="text-zinc-400 dark:text-zinc-600 text-lg font-normal">(<?= $total_video ?>)</span> ✨
             </h2>
         </div>
 
@@ -103,7 +142,6 @@ $total_video = mysqli_num_rows($videos);
                         <a href="watching.php?id=<?= $video['id'] ?>" class="block relative overflow-hidden aspect-video w-full bg-pink-500 flex items-center justify-center transition-all duration-300 select-none">
                             
                             <?php 
-                                // Menggunakan ID video untuk membagi jenis love agar bentuknya bervariasi secara otomatis seperti di blush.php
                                 $loveSeed = isset($video['id']) ? (int)$video['id'] % 4 : rand(0, 3);
                                 
                                 if ($loveSeed === 0): 
@@ -161,10 +199,12 @@ $total_video = mysqli_num_rows($videos);
         <?php else: ?>
             <div class="text-center py-16 bg-white/40 dark:bg-zinc-800/20 rounded-3xl border border-dashed border-zinc-200 dark:border-zinc-800 max-w-md mx-auto p-8">
                 <div class="text-4xl mb-3 select-none">🎬</div>
-                <h3 class="font-bold text-zinc-700 dark:text-zinc-300 tracking-tight">No videos uploaded yet</h3>
-                <p class="text-xs text-zinc-400 dark:text-zinc-500 mt-1 mb-5">Share your first sparkle moment with the community.</p>
-                <a href="/mytube/pretty/sparkle.php" class="inline-flex items-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-5 py-2.5 rounded-2xl font-bold text-xs tracking-wide shadow-md shadow-pink-500/10 hover:shadow-pink-500/20 active:scale-95 transition-all duration-300">
-                    Upload First Video 🚀
+                <h3 class="font-bold text-zinc-700 dark:text-zinc-300 tracking-tight">No videos found</h3>
+                <p class="text-xs text-zinc-400 dark:text-zinc-500 mt-1 mb-5">
+                    <?= $search !== '' ? 'We couldn\'t find any match for your search.' : 'Share your first sparkle moment with the community.' ?>
+                </p>
+                <a href="<?= $search !== '' ? 'profile.php' : '/mytube/pretty/sparkle.php' ?>" class="inline-flex items-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-5 py-2.5 rounded-2xl font-bold text-xs tracking-wide shadow-md shadow-pink-500/10 hover:shadow-pink-500/20 active:scale-95 transition-all duration-300">
+                    <?= $search !== '' ? 'Clear Search 🔄' : 'Upload First Video 🚀' ?>
                 </a>
             </div>
         <?php endif; ?>
